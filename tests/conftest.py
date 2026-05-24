@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import tempfile
 from pathlib import Path
 
 import pytest
 
 from easy_social import create_app
+from easy_social import auth as auth_module
 from easy_social.extensions import db
 
 
@@ -20,6 +22,8 @@ def app():
                 "UPLOAD_FOLDER": str(Path(temp_dir) / "uploads"),
                 "MEDIA_STORAGE_BACKEND": "local",
                 "WTF_CSRF_ENABLED": False,
+                "RECAPTCHA_SITE_KEY": "test-site-key",
+                "RECAPTCHA_SECRET_KEY": "test-secret-key",
             }
         )
         with app.app_context():
@@ -32,6 +36,24 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture(autouse=True)
+def mock_recaptcha_verification(monkeypatch):
+    class _MockResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"success": True}).encode("utf-8")
+
+    def _fake_urlopen(*args, **kwargs):
+        return _MockResponse()
+
+    monkeypatch.setattr(auth_module, "urlopen", _fake_urlopen)
+
+
 def register(client, username: str, email: str | None = None, password: str = "password"):
     return client.post(
         "/auth/register",
@@ -39,6 +61,7 @@ def register(client, username: str, email: str | None = None, password: str = "p
             "username": username,
             "email": email or f"{username}@example.com",
             "password": password,
+            "g-recaptcha-response": "test-captcha-token",
         },
         follow_redirects=True,
     )

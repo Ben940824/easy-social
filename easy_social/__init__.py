@@ -75,6 +75,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         SUPABASE_URL=os.environ.get("SUPABASE_URL"),
         SUPABASE_SERVICE_ROLE_KEY=os.environ.get("SUPABASE_SERVICE_ROLE_KEY"),
         SUPABASE_STORAGE_BUCKET=os.environ.get("SUPABASE_STORAGE_BUCKET", "easy-social-media"),
+        RECAPTCHA_SITE_KEY=os.environ.get("RECAPTCHA_SITE_KEY", ""),
+        RECAPTCHA_SECRET_KEY=os.environ.get("RECAPTCHA_SECRET_KEY", ""),
+        RECAPTCHA_VERIFY_URL="https://www.google.com/recaptcha/api/siteverify",
     )
 
     if test_config:

@@ -4,8 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}鄭博宇的 Easy Social{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block head %}
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+      <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% endblock %}
   </head>
   <body>
     <header class="topbar">

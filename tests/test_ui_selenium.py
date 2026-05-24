@@ -9,6 +9,7 @@ import pytest
 from werkzeug.serving import make_server
 
 from easy_social import create_app
+from easy_social import auth as auth_module
 from easy_social.extensions import db
 from easy_social.models import Comment, Post, User
 
@@ -33,6 +34,8 @@ def ui_app():
                 "UPLOAD_FOLDER": str(temp_path / "uploads"),
                 "MEDIA_STORAGE_BACKEND": "local",
                 "WTF_CSRF_ENABLED": False,
+                "RECAPTCHA_SITE_KEY": "ui-test-site-key",
+                "RECAPTCHA_SECRET_KEY": "ui-test-secret-key",
             }
         )
         with app.app_context():
@@ -90,6 +93,14 @@ def clean_database(ui_app):
         db.session.commit()
 
 
+@pytest.fixture(autouse=True)
+def mock_recaptcha_verification(monkeypatch):
+    def _fake_verify_recaptcha_token(token: str, remote_ip: str | None = None) -> bool:
+        return token == "ui-valid-token"
+
+    monkeypatch.setattr(auth_module, "_verify_recaptcha_token", _fake_verify_recaptcha_token)
+
+
 def wait_for_text(browser, text: str):
     WebDriverWait(browser, 5).until(EC.text_to_be_present_in_element((By.TAG_NAME, "body"), text))
 
@@ -128,6 +139,16 @@ def register_via_ui(browser, live_server: str, username: str):
     set_field_value(browser, form.find_element(By.NAME, "username"), username)
     set_field_value(browser, form.find_element(By.NAME, "email"), f"{username}@example.com")
     set_field_value(browser, form.find_element(By.NAME, "password"), "password")
+    browser.execute_script(
+        """
+        const field = document.createElement('textarea');
+        field.name = 'g-recaptcha-response';
+        field.value = 'ui-valid-token';
+        field.style.display = 'none';
+        arguments[0].appendChild(field);
+        """,
+        form,
+    )
     submit_form(browser, form)
     wait_for_feed(browser)
 
@@ -209,3 +230,17 @@ def test_following_user_adds_their_posts_to_feed(browser, live_server):
 
     browser.get(f"{live_server}/")
     wait_for_text(browser, "Bob browser update")
+
+
+@pytest.mark.ui
+def test_register_blocks_signup_when_captcha_token_missing(browser, live_server):
+    browser.get(f"{live_server}/auth/register")
+    form = WebDriverWait(browser, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "form.form-stack"))
+    )
+    set_field_value(browser, form.find_element(By.NAME, "username"), "captcha_blocked")
+    set_field_value(browser, form.find_element(By.NAME, "email"), "captcha_blocked@example.com")
+    set_field_value(browser, form.find_element(By.NAME, "password"), "password")
+    submit_form(browser, form)
+
+    wait_for_text(browser, "CAPTCHA verification failed. Please try again.")
