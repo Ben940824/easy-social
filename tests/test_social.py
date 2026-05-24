@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import event
 
 from easy_social.extensions import db
-from easy_social.models import Comment, Post, User
+from easy_social.models import Comment, PollOption, PollVote, Post, User
 from scripts.import_fake_data import DEFAULT_DATA_DIR, import_fake_data
 
 from conftest import login, logout, register
@@ -142,3 +142,68 @@ def test_import_fake_data_adds_comments_to_each_seed_post(app):
 
         assert second_counts["comments_created"] == 0
         assert Comment.query.count() == comment_count
+
+
+def test_create_poll_post_and_vote_once(client, app):
+    register(client, "alice")
+    response = client.post(
+        "/posts",
+        data={
+            "body": "Best editor?",
+            "poll_options[]": ["Cursor", "Vim", "", ""],
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    with app.app_context():
+        poll_post = Post.query.filter_by(body="Best editor?").one()
+        options = PollOption.query.filter_by(post_id=poll_post.id).order_by(PollOption.position).all()
+        assert len(options) == 2
+
+    logout(client)
+    register(client, "bob")
+    vote_response = client.post(
+        f"/posts/{poll_post.id}/vote",
+        data={"option_id": options[0].id},
+        follow_redirects=True,
+    )
+    assert vote_response.status_code == 200
+    assert b"Vote submitted." in vote_response.data
+
+    with app.app_context():
+        vote = PollVote.query.filter_by(post_id=poll_post.id, user_id=User.query.filter_by(username="bob").one().id).one()
+        assert vote.option_id == options[0].id
+
+
+def test_user_cannot_vote_twice_on_same_poll(client, app):
+    register(client, "alice")
+    client.post(
+        "/posts",
+        data={
+            "body": "Tea or coffee?",
+            "poll_options[]": ["Tea", "Coffee", "", ""],
+        },
+        follow_redirects=True,
+    )
+    with app.app_context():
+        poll_post = Post.query.filter_by(body="Tea or coffee?").one()
+        option = PollOption.query.filter_by(post_id=poll_post.id, position=1).one()
+
+    first_vote = client.post(
+        f"/posts/{poll_post.id}/vote",
+        data={"option_id": option.id},
+        follow_redirects=True,
+    )
+    second_vote = client.post(
+        f"/posts/{poll_post.id}/vote",
+        data={"option_id": option.id},
+        follow_redirects=True,
+    )
+
+    assert first_vote.status_code == 200
+    assert second_vote.status_code == 200
+    assert b"You have already voted in this poll." in second_vote.data
+
+    with app.app_context():
+        assert PollVote.query.filter_by(post_id=poll_post.id, user_id=User.query.filter_by(username="alice").one().id).count() == 1

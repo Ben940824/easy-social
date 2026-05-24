@@ -19,6 +19,39 @@
       <video class="post-media" controls src="{{ media_url(content.media_filename) }}"></video>
     {% endif %}
   {% endif %}
+  {% set poll = poll_results[content.id] if poll_results is defined and content.id in poll_results else none %}
+  {% if poll %}
+    <section class="poll">
+      <p class="muted">Poll results: {{ poll.total_votes }} votes</p>
+      <div class="poll-options">
+        {% for option in poll.options %}
+          <div class="poll-option">
+            <div class="poll-option-row">
+              <span>{{ option.text }}</span>
+              <span>{{ "%.1f"|format(option.percentage) }}% ({{ option.count }})</span>
+            </div>
+            <div class="poll-bar">
+              <span class="poll-bar-fill" style="width: {{ option.percentage }}%"></span>
+            </div>
+            {% if poll.user_vote_option_id == option.id %}
+              <span class="muted">Your vote</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if not poll.user_vote_option_id %}
+        <form method="post" action="{{ url_for('social.vote', post_id=content.id) }}" class="poll-vote-form">
+          {% for option in poll.options %}
+            <label class="poll-choice">
+              <input type="radio" name="option_id" value="{{ option.id }}" required>
+              <span>{{ option.text }}</span>
+            </label>
+          {% endfor %}
+          <button type="submit">Vote</button>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
   <footer class="post-actions">
     <a href="{{ url_for('social.post_detail', post_id=content.id) }}">{{ comment_counts[content.id] if comment_counts is defined and content.id in comment_counts else content.comments.count() }} comments</a>
     {% if content.author_id != current_user.id %}

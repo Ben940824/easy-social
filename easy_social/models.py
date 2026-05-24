@@ -85,6 +85,19 @@ class Post(db.Model):
         "Comment", back_populates="post", cascade="all, delete-orphan", lazy="dynamic"
     )
     repost_of = db.relationship("Post", remote_side=[id], backref="reposts")
+    poll_options = db.relationship(
+        "PollOption",
+        back_populates="post",
+        cascade="all, delete-orphan",
+        order_by="PollOption.position",
+        lazy="selectin",
+    )
+    poll_votes = db.relationship(
+        "PollVote",
+        back_populates="post",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -100,6 +113,42 @@ class Post(db.Model):
     @property
     def is_repost(self) -> bool:
         return self.repost_of_id is not None
+
+
+class PollOption(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False, index=True)
+    option_text = db.Column(db.String(120), nullable=False)
+    position = db.Column(db.Integer, nullable=False)
+
+    post = db.relationship("Post", back_populates="poll_options")
+    votes = db.relationship("PollVote", back_populates="option", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("post_id", "position", name="uq_poll_option_position"),
+        CheckConstraint("position >= 1 AND position <= 4", name="ck_poll_option_position_range"),
+    )
+
+
+class PollVote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("post.id"), nullable=False, index=True)
+    option_id = db.Column(db.Integer, db.ForeignKey("poll_option.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+    post = db.relationship("Post", back_populates="poll_votes")
+    option = db.relationship("PollOption", back_populates="votes")
+    user = db.relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint("post_id", "user_id", name="uq_poll_vote_single_vote_per_user"),
+    )
 
 
 class Comment(db.Model):
