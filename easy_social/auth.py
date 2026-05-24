@@ -93,7 +93,11 @@ def register():
 
     return render_template(
         "auth/register.html",
-        recaptcha_site_key=current_app.config.get("RECAPTCHA_SITE_KEY", ""),
+        recaptcha_site_key=(
+            current_app.config.get("RECAPTCHA_SITE_KEY", "")
+            if _captcha_is_configured()
+            else ""
+        ),
     )
 
 

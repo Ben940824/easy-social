@@ -24,12 +24,13 @@
       </label>
       {% if recaptcha_site_key %}
         <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+        <button type="submit">Register</button>
       {% else %}
         <p class="muted">
           CAPTCHA is currently unavailable. Registration is temporarily disabled.
         </p>
+        <button type="submit" disabled aria-disabled="true" title="CAPTCHA is not configured">Register</button>
       {% endif %}
-      <button type="submit">Register</button>
     </form>
     <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a>.</p>
   </section>

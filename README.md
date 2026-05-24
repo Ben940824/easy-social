@@ -51,6 +51,8 @@ MEDIA_STORAGE_BACKEND=supabase
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 SUPABASE_STORAGE_BUCKET=easy-social-media
+RECAPTCHA_SITE_KEY=<recaptcha-site-key>
+RECAPTCHA_SECRET_KEY=<recaptcha-secret-key>
 ```
 
 Initialize Supabase from your machine after installing Poetry dependencies and exporting the same variables:
