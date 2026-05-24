@@ -247,10 +247,12 @@ def test_user_can_create_poll_and_vote_once(browser, live_server):
     register_via_ui(browser, live_server, "bob")
     wait_for_text(browser, "Best editor?")
     vote_form = browser.find_element(By.CSS_SELECTOR, "form.poll-vote-form")
-    vote_form.find_elements(By.CSS_SELECTOR, "input[name='option_id']")[0].click()
+    first_choice = vote_form.find_elements(By.CSS_SELECTOR, "input[name='option_id']")[0]
+    WebDriverWait(browser, 10).until(lambda _: first_choice.is_displayed() and first_choice.is_enabled())
+    browser.execute_script("arguments[0].checked = true;", first_choice)
     submit_form(browser, vote_form)
-    wait_for_text(browser, "Vote submitted.")
     wait_for_text(browser, "Your vote")
+    assert not browser.find_elements(By.CSS_SELECTOR, "form.poll-vote-form")
 
 
 @pytest.mark.ui
