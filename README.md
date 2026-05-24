@@ -29,6 +29,8 @@ Useful environment variables:
 ```bash
 SECRET_KEY=change-me
 DATABASE_URL=sqlite:////absolute/path/to/db.sqlite
+RECAPTCHA_SITE_KEY=your-recaptcha-site-key
+RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
 ```
 
 ## Vercel and Supabase

@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Register - Easy Social{% endblock %}
+{% block head %}
+  {{ super() }}
+  {% if recaptcha_site_key %}
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  {% endif %}
+{% endblock %}
 {% block content %}
   <section class="auth-panel">
     <h1>Create account</h1>
@@ -16,6 +22,13 @@
         Password
         <input name="password" type="password" autocomplete="new-password" required>
       </label>
+      {% if recaptcha_site_key %}
+        <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+      {% else %}
+        <p class="muted">
+          CAPTCHA is currently unavailable. Registration is temporarily disabled.
+        </p>
+      {% endif %}
       <button type="submit">Register</button>
     </form>
     <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a>.</p>

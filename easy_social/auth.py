@@ -1,12 +1,51 @@
 from __future__ import annotations
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+import json
+from urllib.parse import urlencode
+from urllib.request import urlopen
+
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from .extensions import db
 from .models import User
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+
+def _captcha_is_configured() -> bool:
+    return bool(
+        current_app.config.get("RECAPTCHA_SITE_KEY")
+        and current_app.config.get("RECAPTCHA_SECRET_KEY")
+    )
+
+
+def _verify_recaptcha_token(token: str, remote_ip: str | None = None) -> bool:
+    secret = current_app.config.get("RECAPTCHA_SECRET_KEY", "")
+    if not secret or not token:
+        return False
+
+    payload = {"secret": secret, "response": token}
+    if remote_ip:
+        payload["remoteip"] = remote_ip
+
+    data = urlencode(payload).encode("utf-8")
+    try:
+        with urlopen(  # nosec B310
+            current_app.config["RECAPTCHA_VERIFY_URL"], data=data, timeout=5
+        ) as response:
+            raw_body = response.read().decode("utf-8")
+    except Exception:
+        current_app.logger.exception("reCAPTCHA verification request failed.")
+        return False
+
+    try:
+        verification = json.loads(raw_body)
+    except json.JSONDecodeError:
+        current_app.logger.warning("reCAPTCHA verification returned invalid JSON.")
+        return False
+
+    return bool(verification.get("success"))
 
 
 @bp.route("/register", methods=["GET", "POST"])
@@ -18,10 +57,15 @@ def register():
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        captcha_token = request.form.get("g-recaptcha-response", "")
 
         error = None
         if not username or not email or not password:
             error = "Username, email, and password are required."
+        elif not _captcha_is_configured():
+            error = "CAPTCHA is not configured. Please contact the administrator."
+        elif not _verify_recaptcha_token(captcha_token, request.remote_addr):
+            error = "CAPTCHA verification failed. Please try again."
         elif len(username) > 40:
             error = "Username must be 40 characters or fewer."
         elif User.query.filter_by(username=username).first():
@@ -39,7 +83,10 @@ def register():
             login_user(user)
             return redirect(url_for("social.feed"))
 
-    return render_template("auth/register.html")
+    return render_template(
+        "auth/register.html",
+        recaptcha_site_key=current_app.config.get("RECAPTCHA_SITE_KEY", ""),
+    )
 
 
 @bp.route("/login", methods=["GET", "POST"])
