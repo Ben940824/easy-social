@@ -48,6 +48,14 @@ def _verify_recaptcha_token(token: str, remote_ip: str | None = None) -> bool:
     return bool(verification.get("success"))
 
 
+def _extract_recaptcha_token() -> str:
+    # reCAPTCHA widgets may submit multiple values; prefer the last non-empty value.
+    submitted_tokens = [
+        token.strip() for token in request.form.getlist("g-recaptcha-response") if token.strip()
+    ]
+    return submitted_tokens[-1] if submitted_tokens else ""
+
+
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
@@ -57,7 +65,7 @@ def register():
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-        captcha_token = request.form.get("g-recaptcha-response", "")
+        captcha_token = _extract_recaptcha_token()
 
         error = None
         if not username or not email or not password:

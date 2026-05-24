@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from werkzeug.datastructures import MultiDict
 
 from easy_social import auth as auth_module
 from easy_social.models import User
@@ -20,6 +21,23 @@ class _MockResponse:
 
     def read(self):
         return json.dumps(self._payload).encode("utf-8")
+
+
+@pytest.mark.unit
+def test_extract_recaptcha_token_prefers_last_non_empty_value(app):
+    with app.test_request_context(
+        "/auth/register",
+        method="POST",
+        data=MultiDict(
+            [
+            ("g-recaptcha-response", ""),
+            ("g-recaptcha-response", "first-token"),
+            ("g-recaptcha-response", "  "),
+            ("g-recaptcha-response", "last-token"),
+            ]
+        ),
+    ):
+        assert auth_module._extract_recaptcha_token() == "last-token"
 
 
 @pytest.mark.unit
