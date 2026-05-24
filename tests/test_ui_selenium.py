@@ -233,6 +233,27 @@ def test_following_user_adds_their_posts_to_feed(browser, live_server):
 
 
 @pytest.mark.ui
+def test_user_can_create_poll_and_vote_once(browser, live_server):
+    register_via_ui(browser, live_server, "alice")
+    composer = browser.find_element(By.CSS_SELECTOR, "form.composer")
+    set_field_value(browser, composer.find_element(By.NAME, "body"), "Best editor?")
+    poll_inputs = composer.find_elements(By.NAME, "poll_options[]")
+    set_field_value(browser, poll_inputs[0], "Cursor")
+    set_field_value(browser, poll_inputs[1], "Vim")
+    submit_form(browser, composer)
+    wait_for_text(browser, "Best editor?")
+    logout_via_ui(browser)
+
+    register_via_ui(browser, live_server, "bob")
+    wait_for_text(browser, "Best editor?")
+    vote_form = browser.find_element(By.CSS_SELECTOR, "form.poll-vote-form")
+    vote_form.find_elements(By.CSS_SELECTOR, "input[name='option_id']")[0].click()
+    submit_form(browser, vote_form)
+    wait_for_text(browser, "Vote submitted.")
+    wait_for_text(browser, "Your vote")
+
+
+@pytest.mark.ui
 def test_register_blocks_signup_when_captcha_token_missing(browser, live_server):
     browser.get(f"{live_server}/auth/register")
     form = WebDriverWait(browser, 10).until(

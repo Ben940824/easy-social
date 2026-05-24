@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 import pytest
 
 from easy_social.extensions import db
-from easy_social.models import Post, User
+from easy_social.models import PollOption, PollVote, Post, User
 
 pytestmark = pytest.mark.unit
 
@@ -90,3 +90,28 @@ def test_repost_display_post_points_to_original(app):
         assert original.display_post == original
         assert repost.is_repost
         assert repost.display_post == original
+
+
+def test_poll_vote_unique_per_user_per_post(app):
+    with app.app_context():
+        alice = make_user("alice")
+        bob = make_user("bob")
+        poll_post = Post(author=alice, body="Which one?")
+        db.session.add_all([alice, bob, poll_post])
+        db.session.flush()
+
+        option_a = PollOption(post=poll_post, option_text="A", position=1)
+        option_b = PollOption(post=poll_post, option_text="B", position=2)
+        db.session.add_all([option_a, option_b])
+        db.session.flush()
+
+        db.session.add(PollVote(post=poll_post, option=option_a, user=bob))
+        db.session.commit()
+
+        db.session.add(PollVote(post=poll_post, option=option_b, user=bob))
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+        else:
+            raise AssertionError("duplicate vote per user per poll should violate unique constraint")
