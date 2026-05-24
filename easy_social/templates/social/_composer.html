@@ -1,5 +1,12 @@
 <form method="post" action="{{ url_for('social.create_post') }}" enctype="multipart/form-data" class="composer">
   <textarea name="body" rows="4" maxlength="2000" placeholder="What is happening?"></textarea>
+  <div class="poll-composer">
+    <p class="muted">Optional poll (2-4 options, no media attachment):</p>
+    <input name="poll_options[]" maxlength="120" placeholder="Option 1">
+    <input name="poll_options[]" maxlength="120" placeholder="Option 2">
+    <input name="poll_options[]" maxlength="120" placeholder="Option 3 (optional)">
+    <input name="poll_options[]" maxlength="120" placeholder="Option 4 (optional)">
+  </div>
   <div class="composer-preview" data-media-preview hidden>
     <div class="composer-preview-frame" data-media-preview-frame></div>
     <div class="composer-preview-meta">

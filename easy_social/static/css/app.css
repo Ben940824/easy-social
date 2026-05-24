@@ -237,6 +237,64 @@ button.secondary {
   justify-content: space-between;
 }
 
+.poll-composer {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.poll {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.poll-options {
+  display: grid;
+  gap: 10px;
+}
+
+.poll-option-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.poll-bar {
+  background: #eef1f4;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.poll-bar-fill {
+  background: var(--accent);
+  display: block;
+  height: 100%;
+}
+
+.poll-vote-form {
+  display: grid;
+  gap: 8px;
+}
+
+.poll-choice {
+  align-items: center;
+  display: flex;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.poll-choice input {
+  width: auto;
+}
+
 .file-picker {
   color: var(--muted);
   cursor: pointer;
